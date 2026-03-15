@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blayz Remote — Mobile</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0D0D0D; --bg2: #1A1A1A; --card: #222222;
+    --acc: #00D4FF; --ok: #00FF88; --err: #FF4444;
+    --warn: #EF9F27; --text: #F0F0F0; --muted: #888888; --bord: #2A2A2A;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  #connect-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .logo-box { width: 60px; height: 60px; border: 1px solid var(--acc); background: #004455; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 20px; font-weight: bold; color: var(--acc); margin-bottom: 20px; }
+  .brand { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .brand-sub { font-size: 11px; color: var(--acc); letter-spacing: 2px; margin-bottom: 32px; }
+  .card { background: var(--bg2); border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; margin-bottom: 12px; }
+  label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+  input[type=text] { width: 100%; background: var(--card); border: 1px solid var(--bord); border-radius: 6px; padding: 12px 14px; color: var(--text); font-family: monospace; font-size: 14px; outline: none; }
+  input[type=text]:focus { border-color: var(--acc); }
+  .btn { width: 100%; padding: 14px; border: none; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .btn-primary { background: var(--acc); color: #000; }
+  .btn-primary:disabled { opacity: .5; }
+  #status-box { width: 100%; max-width: 400px; margin-top: 8px; }
+  .status-line { padding: 10px 14px; border-radius: 6px; font-size: 12px; font-family: monospace; margin-bottom: 6px; }
+  .s-info  { background: #001a2a; color: var(--acc); border: 1px solid #003344; }
+  .s-ok    { background: #001a0d; color: var(--ok);  border: 1px solid #003320; }
+  .s-err   { background: #2a0000; color: var(--err); border: 1px solid #440000; }
+  .s-warn  { background: #1a1000; color: var(--warn);border: 1px solid #332200; }
+  #view-screen { display: none; flex-direction: column; height: 100vh; }
+  #topbar { background: var(--bg2); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bord); }
+  #topbar .br { font-size: 13px; font-weight: 700; color: var(--acc); }
+  #live-dot { font-size: 11px; color: var(--ok); }
+  #disc-btn { background: transparent; border: 1px solid var(--err); color: var(--err); padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; }
+  #screen-wrap { flex: 1; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #screen-img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+  #waiting-msg { color: var(--muted); font-size: 13px; text-align: center; padding: 20px; }
+  #qbar { background: var(--bg2); padding: 6px 12px; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--bord); }
+  #qbar span { font-size: 10px; color: var(--muted); }
+  .qb { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid var(--bord); background: transparent; color: var(--muted); cursor: pointer; }
+  .qb.active { background: var(--acc); border-color: var(--acc); color: #000; }
+  #fps { margin-left: auto; font-size: 10px; color: var(--muted); font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div id="connect-screen">
+  <div class="logo-box">BR</div>
+  <div class="brand">BLAYZ REMOTE</div>
+  <div class="brand-sub">MOBILE VIEWER</div>
+
+  <div class="card">
+    <label>RELAY SERVER URL</label>
+    <input type="text" id="relay-url" placeholder="wss://your-app.railway.app" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <div class="card">
+    <label>HOST DEVICE ID</label>
+    <input type="text" id="device-id" placeholder="e.g. AAF8E1C8" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+  </div>
+
+  <div class="card" style="padding:0; overflow:hidden;">
+    <button class="btn btn-primary" id="connect-btn" onclick="doConnect()">CONNECT</button>
+  </div>
+
+  <div id="status-box"></div>
+</div>
+
+<div id="view-screen">
+  <div id="topbar">
+    <span class="br">BLAYZ REMOTE</span>
+    <span id="live-dot">● Live</span>
+    <button id="disc-btn" onclick="doDisconnect()">Disconnect</button>
+  </div>
+  <div id="screen-wrap">
+    <img id="screen-img" src="" alt="">
+    <div id="waiting-msg">Waiting for screen...</div>
+  </div>
+  <div id="qbar">
+    <span>Quality:</span>
+    <button class="qb" onclick="setQ('low',this)">Low</button>
+    <button class="qb active" onclick="setQ('mid',this)">Mid</button>
+    <button class="qb" onclick="setQ('high',this)">High</button>
+    <span id="fps">-- fps</span>
+  </div>
+</div>
+
+<script>
+let ws = null;
+let connected = false;
+let frameCount = 0;
+let lastFps = Date.now();
+let myId = 'MOB_' + Math.random().toString(36).substr(2,5).toUpperCase();
+
+function log(msg, type) {
+  type = type || 'info';
+  const box = document.getElementById('status-box');
+  const cls = {info:'s-info', ok:'s-ok', err:'s-err', warn:'s-warn'}[type] || 's-info';
+  const d = document.createElement('div');
+  d.className = 'status-line ' + cls;
+  d.textContent = msg;
+  box.appendChild(d);
+  // Keep only last 5 logs
+  while (box.children.length > 5) box.removeChild(box.firstChild);
+}
+
+function clearLog() {
+  document.getElementById('status-box').innerHTML = '';
+}
+
+function setBtn(text, disabled) {
+  const b = document.getElementById('connect-btn');
+  b.textContent = text;
+  b.disabled = disabled;
+}
+
+function doConnect() {
+  const relayUrl = document.getElementById('relay-url').value.trim();
+  const targetId = document.getElementById('device-id').value.trim().toUpperCase();
+
+  clearLog();
+
+  if (!relayUrl) { log('Enter relay URL!', 'err'); return; }
+  if (!targetId) { log('Enter Device ID!', 'err'); return; }
+  if (!relayUrl.startsWith('ws')) { log('URL must start with wss:// or ws://', 'err'); return; }
+
+  setBtn('Connecting...', true);
+  log('Connecting to relay...', 'info');
+
+  try {
+    ws = new WebSocket(relayUrl);
+  } catch(e) {
+    log('Invalid URL: ' + e.message, 'err');
+    setBtn('CONNECT', false);
+    return;
+  }
+
+  // Timeout after 8 seconds
+  const timeout = setTimeout(() => {
+    if (ws && ws.readyState !== WebSocket.OPEN) {
+      log('Timeout — relay not reachable', 'err');
+      ws.close();
+      setBtn('CONNECT', false);
+    }
+  }, 8000);
+
+  ws.onopen = () => {
+    clearTimeout(timeout);
+    log('Relay connected!', 'ok');
+    log('Registering as mobile...', 'info');
+    ws.send(JSON.stringify({
+      type: 'register',
+      device_id: myId,
+      username: 'Mobile Viewer',
+      client_type: 'mobile',
+    }));
+  };
+
+  ws.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    const t = msg.type;
+
+    if (t === 'registered') {
+      log('Registered! Requesting access...', 'ok');
+      ws.send(JSON.stringify({ type: 'connect_request', target_id: targetId }));
+    }
+
+    else if (t === 'connect_response') {
+      if (!msg.allowed) {
+        log('Host DENIED the connection', 'err');
+        setBtn('CONNECT', false);
+        return;
+      }
+      connected = true;
+      log('Access granted!', 'ok');
+      setTimeout(showViewScreen, 500);
+      startFps();
+    }
+
+    else if (t === 'frame') {
+      if (!connected) return;
+      const img = document.getElementById('screen-img');
+      img.src = 'data:image/jpeg;base64,' + msg.data;
+      img.style.display = 'block';
+      document.getElementById('waiting-msg').style.display = 'none';
+      frameCount++;
+    }
+
+    else if (t === 'session_ended') {
+      log('Host ended session', 'warn');
+      doDisconnect();
+    }
+
+    else if (t === 'error') {
+      log('Error: ' + msg.msg, 'err');
+      setBtn('CONNECT', false);
+    }
+
+    else if (t === 'online_list') {
+      if (msg.devices.length === 0) {
+        log('No devices online — is host running?', 'warn');
+      }
+    }
+  };
+
+  ws.onerror = (e) => {
+    clearTimeout(timeout);
+    log('WebSocket error — check URL', 'err');
+    setBtn('CONNECT', false);
+  };
+
+  ws.onclose = (e) => {
+    clearTimeout(timeout);
+    if (connected) {
+      connected = false;
+      showConnectScreen();
+      log('Disconnected (code: ' + e.code + ')', 'warn');
+    } else if (e.code !== 1000) {
+      log('Connection closed: ' + (e.reason || 'code ' + e.code), 'err');
+      setBtn('CONNECT', false);
+    }
+  };
+}
+
+function doDisconnect() {
+  connected = false;
+  if (ws) { try { ws.close(); } catch{} ws = null; }
+  showConnectScreen();
+}
+
+function showViewScreen() {
+  document.getElementById('connect-screen').style.display = 'none';
+  document.getElementById('view-screen').style.display = 'flex';
+}
+
+function showConnectScreen() {
+  document.getElementById('view-screen').style.display = 'none';
+  document.getElementById('connect-screen').style.display = 'flex';
+  setBtn('CONNECT', false);
+}
+
+function setQ(q, btn) {
+  document.querySelectorAll('.qb').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function startFps() {
+  setInterval(() => {
+    const now = Date.now();
+    const fps = Math.round(frameCount / ((now - lastFps) / 1000));
+    document.getElementById('fps').textContent = fps + ' fps';
+    frameCount = 0;
+    lastFps = now;
+  }, 1000);
+}
+
+// Load saved relay URL
+const saved = localStorage.getItem('blayz_relay');
+if (saved) document.getElementById('relay-url').value = saved;
+document.getElementById('relay-url').addEventListener('blur', function() {
+  localStorage.setItem('blayz_relay', this.value);
+});
+</script>
+</body>
+</html>
